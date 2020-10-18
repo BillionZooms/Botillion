@@ -32,9 +32,13 @@ async def _8ball(ctx, *, question):
              'My sources say no',
              'Very doubtful',
              'My reply is no']
-    await ctx.send(f'Question: {question}\nAnswer: {random.choice(responses)}')
+    if ctx.author.id == 147840568897044480:
+        await ctx.send(f'fuck yourself billion')
+    else:
+        await ctx.send(f'Question: {question}\nAnswer: {random.choice(responses)}')
+    
     
 
 
 
-client.run('token here')
+client.run('ur token')
