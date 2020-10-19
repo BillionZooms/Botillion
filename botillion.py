@@ -16,12 +16,12 @@ async def _8ball(ctx, *, question):
     await ctx.send(f'Question: {question}\nAnswer: {random.choice(line)}')
 
 async def getUserFromMention(mention):          #Transforms a mention into a username. Example : <@147840568897044480> to billion
-    if mention.startswith('<@') and mention.endswith('>'):
+    if mention.startswith('<@') and mention.endswith('>'):  #If its a mention, removes the <@ and >
         mention = mention[2:-1]
-        if mention.startswith('!'):
+        if mention.startswith('!'): #Removes an '!' if its at the start of the ID.
             mention = mention[1:]
-        name = await client.fetch_user(mention)
-        name = name.name
+        name = await client.fetch_user(mention) #Gets the User from the ID
+        name = name.name    #Get the name of the User 
         return name
     else:
         return mention
@@ -52,6 +52,8 @@ async def blacklist(ctx, *, name):          #blacklist || Blacklists a user and 
     membername = await getUserFromMention(name)
     member = guild.get_member_named(membername)
     if ctx.author.guild_permissions.administrator:
+        if member == None:
+            await ctx.send('Member is not in this server.')
         alreadyBl = await checkUserinList("blacklist.txt", str(member.id))
         if alreadyBl == True:
             await ctx.send("User is already blacklisted.")
@@ -60,9 +62,7 @@ async def blacklist(ctx, *, name):          #blacklist || Blacklists a user and 
                 bltxt = open("blacklist.txt", "a")
                 bltxt.write(f'{member.id}\n')
                 await ctx.send(f'Blacklisted {member.mention} from using commands.')
-                bltxt.close()
-            else:
-                await ctx.send('Member is not in this server.')
+                bltxt.close()    
     else:
         await ctx.send("Only people with Administrator privileges are allowed to use this command!")
 
@@ -89,7 +89,6 @@ async def unblacklist(ctx, *, name):            #unblacklist || Unblacklists a u
             await ctx.send("User is not blacklisted or doesn't exist.")
     else:
         await ctx.send("Only people with Administrator privileges are allowed to use this command!")
-
 
 @client.command()
 async def blacklist_list(ctx):
