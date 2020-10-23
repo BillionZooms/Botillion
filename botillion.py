@@ -28,22 +28,21 @@ async def getUserFromMention(mention):          #Transforms a mention into a use
 
 async def checkUserinList(listx, userid):           #Returns True if the userid is found in the given file.
     b = False
-    try: 
-        readfile = open(listx, "r")
-        read = readfile.readline()
-        while read:
-            if read.endswith('\n'):
-                read = read[:-1]
-                if read == userid:
-                    b = True
-                    break
-                else:
-                    b = False
-                    read = readfile.readline()
+    readfile = open(listx, "r")
+    read = readfile.readline()
+    while read:
+        newnumber = ""
+        for i in read:
+            if i != ' ':
+                newnumber = newnumber + i
             else:
-                print('idk')
-    except:
-        print("Error checkUserinList")
+                break
+        if newnumber == userid:
+            b = True
+            break
+        else:
+            b = False
+            read = readfile.readline()
     return b
 
 @client.command()
@@ -60,7 +59,7 @@ async def blacklist(ctx, *, name):          #blacklist || Blacklists a user and 
         else:
             if not member == None:
                 bltxt = open("blacklist.txt", "a")
-                bltxt.write(f'{member.id}\n')
+                bltxt.write(f'{member.id} {member.name}#{member.discriminator}\n')
                 await ctx.send(f'Blacklisted {member.mention} from using commands.')
                 bltxt.close()    
     else:
@@ -96,4 +95,4 @@ async def blacklist_list(ctx):
     bllist = bltxt.read()
     await ctx.send(f'The blacklisted users are: {bllist}')
     
-client.run('token')
+client.run('')
