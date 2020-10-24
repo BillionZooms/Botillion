@@ -144,9 +144,9 @@ async def createroom(ctx, user1 = None, user2 = None, nameoruser3 = None, nameor
             }
             for l in channels:
                 position = l.position + 1
-            vchannel = ctx.guild.create_voice_channel(name, overwrites=overwrites, position=position, category=category)
+            vchannel = await ctx.guild.create_voice_channel(name, overwrites=overwrites, position=position, category=category)
             if ctx.author.guild_permissions.administrator:
-                if user1.voice.channel == None or user2.voice.channel == None or user3.voice.channel == None:
+                if user1.voice == None or user2.voice == None or user3.voice == None:
                     await ctx.send("All users need to be in voice chat to move.")
                 else:
                     await user1.move_to(vchannel)
@@ -165,7 +165,7 @@ async def createroom(ctx, user1 = None, user2 = None, nameoruser3 = None, nameor
                 position = l.position + 1
             vchannel = await ctx.guild.create_voice_channel(nameormove, overwrites=overwrites, position=position, category=category)
             if ctx.author.guild_permissions.administrator:
-                if user1.voice.channel == None or user2.voice.channel == None or user3.voice.channel == None:
+                if user1.voice == None or user2.voice == None or user3.voice == None:
                     await ctx.send("All users need to be in voice chat to move.")
                 else:
                     await user1.move_to(vchannel)
@@ -225,14 +225,4 @@ async def createroom(ctx, user1 = None, user2 = None, nameoruser3 = None, nameor
             ctx.send("Couldn't use the 'move' argument due to lack of permissions.")
 
 
-
-
-    
-    
-    
-    
-        
-
-            
-    
 client.run('token')
