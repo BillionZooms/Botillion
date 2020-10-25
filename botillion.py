@@ -92,16 +92,14 @@ async def blacklist_list(ctx):
     bllist = bltxt.read()
     await ctx.send(f'The blacklisted users are: {bllist}')
 
+
+
 @client.command()
-async def createroom(ctx, user1 = None, user2 = None, nameoruser3 = None, nameormove = None, move = None):
-    user1 = await getUserFromMention(user1)
-    user2 = await getUserFromMention(user2)
-    user1 = ctx.guild.get_member_named(user1)
-    user2 = ctx.guild.get_member_named(user2)
-    if user1 == None or user2 == None:
-        await ctx.send("You need to enter at least 2 users (maximum 3)")
-        return
+async def createroom(ctx, user1, user2, *args):
     categories = ctx.guild.by_category()
+    user1, user2 = await getUserFromMention(user1), await getUserFromMention(user2)
+    user1, user2 = ctx.guild.get_member_named(user1), ctx.guild.get_member_named(user2)
+    name = None
     for c in categories:
         for cl in c:
             if cl.id == 756536378363478058:
@@ -110,119 +108,58 @@ async def createroom(ctx, user1 = None, user2 = None, nameoruser3 = None, nameor
             else:
                 break
     channels = ctx.guild.voice_channels
-    if not nameoruser3 == None and nameoruser3.startswith('<@') and nameoruser3.endswith('>'):
-        user3 = await getUserFromMention(nameoruser3)
-        user3 = ctx.guild.get_member_named(user3)
-        if nameormove == None:
+    move = False
+    userlist = [user1, user2]
+    if user1 == None or user2 == None:
+        await ctx.send("Please give at least 2 users to create a room.")
+        return
+    for i in range(0,len(args)):
+        puser = await getUserFromMention(args[i])
+        user = ctx.guild.get_member_named(puser)
+        if user != None:
+            userlist += [user]
+        elif args[i].lower() == 'move':
+            move = True
+            break
+        else:
+            name = args[i]
+    if move == True:
+        permissions = {}
+        permissions[ctx.guild.default_role] = discord.PermissionOverwrite(view_channel = False)
+        if name == None:
             x = 1
             name = 'Private Room #' + str(x)
             for i in channels:
                 if name.lower() == i.name.lower():
                     x = x + 1
                     name = 'Private Room #' + str(x)
-            overwrites = {
-                ctx.guild.default_role: discord.PermissionOverwrite(view_channel = False),
-                user1: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True),
-                user2: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True),
-                user3: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True)
-            }
-            for l in channels:
-                position = l.position + 1
-            await ctx.guild.create_voice_channel(name, overwrites=overwrites, position=position, category=category)
-        elif nameormove.lower() == 'move':
-            x = 1
-            name = 'Private Room #' + str(x)
-            for i in channels:
-                if name.lower() == i.name.lower():
-                    x = x + 1
-                    name = 'Private Room #' + str(x)
-            overwrites = {
-                ctx.guild.default_role: discord.PermissionOverwrite(view_channel = False),
-                user1: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True),
-                user2: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True),
-                user3: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True)
-            }
-            for l in channels:
-                position = l.position + 1
-            vchannel = await ctx.guild.create_voice_channel(name, overwrites=overwrites, position=position, category=category)
-            if ctx.author.guild_permissions.administrator:
-                if user1.voice == None or user2.voice == None or user3.voice == None:
-                    await ctx.send("All users need to be in voice chat to move.")
-                else:
-                    await user1.move_to(vchannel)
-                    await user2.move_to(vchannel)
-                    await user3.move_to(vchannel)
-            else:
-                ctx.send("Couldn't use the 'move' argument due to lack of permissions.")
-        elif not nameormove == None and move.lower() == 'move':
-            overwrites = {
-                ctx.guild.default_role: discord.PermissionOverwrite(view_channel = False),
-                user1: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True),
-                user2: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True),
-                user3: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True)
-            }
-            for l in channels:
-                position = l.position + 1
-            vchannel = await ctx.guild.create_voice_channel(nameormove, overwrites=overwrites, position=position, category=category)
-            if ctx.author.guild_permissions.administrator:
-                if user1.voice == None or user2.voice == None or user3.voice == None:
-                    await ctx.send("All users need to be in voice chat to move.")
-                else:
-                    await user1.move_to(vchannel)
-                    await user2.move_to(vchannel)
-                    await user3.move_to(vchannel)
-            else:
-                ctx.send("Couldn't use the 'move' argument due to lack of permissions.")
-
-        elif not nameormove == None and move.lower() == False:
-            overwrites = {
-                ctx.guild.default_role: discord.PermissionOverwrite(view_channel = False),
-                user1: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True),
-                user2: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True),
-                user3: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True)
-            }
-            for l in channels:
-                position = l.position + 1
-            vchannel = ctx.guild.create_voice_channel(nameormove, overwrites=overwrites, position=position, category=category)
-    elif nameoruser3 == None:
-        x = 1
-        name = 'Private Room #' + str(x)
-        for i in channels:
-            if name.lower() == i.name.lower():
-                x = x + 1
-                name = 'Private Room #' + str(x)
-        overwrites = {
-            ctx.guild.default_role: discord.PermissionOverwrite(view_channel = False),
-            user1: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True),
-            user2: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True)
-        }
+        for user in userlist:
+            permissions[user] = discord.PermissionOverwrite(view_channel = True)
         for l in channels:
             position = l.position + 1
-        await ctx.guild.create_voice_channel(name, overwrites=overwrites, position=position, category=category)
-    elif not nameoruser3 == None and nameormove == 'move':
-        x = 1
-        name = 'Private Room #' + str(x)
-        for i in channels:
-            if name.lower() == i.name.lower():
-                x = x + 1
-                name = 'Private Room #' + str(x)
-        overwrites = {
-            ctx.guild.default_role: discord.PermissionOverwrite(view_channel = False),
-            user1: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True),
-            user2: discord.PermissionOverwrite(connect = True, speak = True, view_channel = True)
-        }
-        for l in channels:
-            position = l.position + 1
-        vchannel = await ctx.guild.create_voice_channel(nameoruser3, overwrites=overwrites, position=position, category=category)
+        vchannel = await ctx.guild.create_voice_channel(name, overwrites=permissions, position=position, category=category)
         if ctx.author.guild_permissions.administrator:
-            if user1.voice.channel == None or user2.voice.channel == None:
-                await ctx.send("All users need to be in voice chat to move.")
-            else:
-                await user1.move_to(vchannel)
-                await user2.move_to(vchannel)
-            
+            for user in userlist:
+                if user.voice == None:
+                    await ctx.send(f"Couldnt move : {user.mention} they are not in a voice channel.")
+                else:
+                    await user.move_to(vchannel)
         else:
             ctx.send("Couldn't use the 'move' argument due to lack of permissions.")
-
+    else:
+        permissions = {}
+        permissions[ctx.guild.default_role] = discord.PermissionOverwrite(view_channel = False)
+        if name == None:
+            x = 1
+            name = 'Private Room #' + str(x)
+            for i in channels:
+                if name.lower() == i.name.lower():
+                    x = x + 1
+                    name = 'Private Room #' + str(x)
+        for user in userlist:
+            permissions[user] = discord.PermissionOverwrite(view_channel = True)
+        for l in channels:
+            position = l.position + 1
+        await ctx.guild.create_voice_channel(name, overwrites=permissions, position=position, category=category)
 
 client.run('token')
