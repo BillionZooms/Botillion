@@ -152,14 +152,20 @@ async def createroom(ctx, user1, user2, *args):
         for l in channels:
             position = l.position + 1
         vchannel = await ctx.guild.create_voice_channel(name, overwrites=permissions, position=position, category=category)
-        if ctx.author.guild_permissions.administrator:
+        for role in ctx.author.roles:
+            if role.id == 770364408848842853:
+                rperm = True
+                break
+            else:
+                rperm = False
+        if rperm == True:
             for user in userlist:
                 if user.voice == None:
                     await ctx.send(f"Couldnt move : {user.mention} they are not in a voice channel.")
                 else:
                     await user.move_to(vchannel)
         else:
-            ctx.send("Couldn't use the 'move' argument due to lack of permissions.")
+            await ctx.send("Couldn't use the 'move' argument due to lack of role.")
         await deleteVoiceChannelTime(vchannel, 5)
     else:
         permissions = {}
@@ -177,5 +183,5 @@ async def createroom(ctx, user1, user2, *args):
             position = l.position + 1
         vchannel = await ctx.guild.create_voice_channel(name, overwrites=permissions, position=position, category=category)
         await deleteVoiceChannelTime(vchannel, 5)
-
+        
 client.run('token')
