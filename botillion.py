@@ -1,4 +1,5 @@
 import discord
+import asyncio
 from discord.ext import commands
 import random
 
@@ -92,7 +93,20 @@ async def blacklist_list(ctx):
     bllist = bltxt.read()
     await ctx.send(f'The blacklisted users are: {bllist}')
 
-
+async def deleteVoiceChannelTime(channel, timeorg):
+    while True:
+        time = timeorg
+        while len(channel.members) != 0:
+            await asyncio.sleep(5)
+        while time != 0:
+            if len(channel.members) == 0:
+                await asyncio.sleep(1)
+                time = time - 1
+            else:
+               break
+        if time == 0:
+            await channel.delete()
+            return
 
 @client.command()
 async def createroom(ctx, user1, user2, *args):
@@ -146,6 +160,7 @@ async def createroom(ctx, user1, user2, *args):
                     await user.move_to(vchannel)
         else:
             ctx.send("Couldn't use the 'move' argument due to lack of permissions.")
+        await deleteVoiceChannelTime(vchannel, 5)
     else:
         permissions = {}
         permissions[ctx.guild.default_role] = discord.PermissionOverwrite(view_channel = False)
@@ -160,6 +175,7 @@ async def createroom(ctx, user1, user2, *args):
             permissions[user] = discord.PermissionOverwrite(view_channel = True)
         for l in channels:
             position = l.position + 1
-        await ctx.guild.create_voice_channel(name, overwrites=permissions, position=position, category=category)
+        vchannel = await ctx.guild.create_voice_channel(name, overwrites=permissions, position=position, category=category)
+        await deleteVoiceChannelTime(vchannel, 5)
 
 client.run('token')
