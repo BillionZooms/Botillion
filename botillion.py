@@ -11,7 +11,6 @@ client = commands.Bot(command_prefix= '.', intents = intents)
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
-    await client.change_presence()
 
 @client.command(aliases=['8ball'])          #8BALL || Takes question and in return sends and answer randomly pulled from responses.txt with random.choice
 async def _8ball(ctx, *, question):
@@ -221,4 +220,6 @@ async def croom_clear(ctx):
         json.dump(d, f)
         f.close()
         
-client.run('token')
+with open('token.txt', 'r') as f:
+    token = f.read()
+    client.run(token)
