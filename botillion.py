@@ -2,14 +2,16 @@ import discord
 import asyncio
 from discord.ext import commands
 import random
+import json
 
 intents = discord.Intents.default()
 intents.members = True
-client = commands.Bot(command_prefix= 'cum.', intents = intents)
+client = commands.Bot(command_prefix= '.', intents = intents)
 
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
+    await client.change_presence()
 
 @client.command(aliases=['8ball'])          #8BALL || Takes question and in return sends and answer randomly pulled from responses.txt with random.choice
 async def _8ball(ctx, *, question):
@@ -93,23 +95,35 @@ async def blacklist_list(ctx):
     bllist = bltxt.read()
     await ctx.send(f'The blacklisted users are: {bllist}')
 
-async def deleteVoiceChannelTime(channel, timeorg):
-    while True:
-        time = timeorg
-        while len(channel.members) != 0:
-            await asyncio.sleep(5)
-        while time != 0:
-            if len(channel.members) == 0:
-                await asyncio.sleep(1)
-                time = time - 1
+def tempchannelAdd(userid, channelid):
+    with open('tempchannel.json', 'r') as f:
+        try:
+            d = json.load(f)
+            if userid in d['Owners'].keys():
+                l = d['Owners'].get(userid)
+                l.append(channelid)
+                d['Owners'][userid] = l
             else:
-               break
-        if time == 0:
-            await channel.delete()
-            return
+                di = {
+                    userid : idlist[channelid]
+                }
+                d['Owners'].update(di)
+        except:
+            idlist = []
+            idlist.append(channelid)
+            d = {
+                'Owners' : {
+                    userid : idlist
+                }
+            }
+        f.close()
+    with open('tempchannel.json', 'w') as f:
+        json.dump(d, f, indent=2)
+        f.close()
+        
 
 @client.command()
-async def createroom(ctx, user1, user2, *args):
+async def croom(ctx, user1, user2, *args):
     categories = ctx.guild.by_category()
     user1, user2 = await getUserFromMention(user1), await getUserFromMention(user2)
     user1, user2 = ctx.guild.get_member_named(user1), ctx.guild.get_member_named(user2)
@@ -166,7 +180,6 @@ async def createroom(ctx, user1, user2, *args):
                     await user.move_to(vchannel)
         else:
             await ctx.send("Couldn't use the 'move' argument due to lack of role.")
-        await deleteVoiceChannelTime(vchannel, 5)
     else:
         permissions = {}
         permissions[ctx.guild.default_role] = discord.PermissionOverwrite(view_channel = False)
@@ -182,6 +195,30 @@ async def createroom(ctx, user1, user2, *args):
         for l in channels:
             position = l.position + 1
         vchannel = await ctx.guild.create_voice_channel(name, overwrites=permissions, position=position, category=category)
-        await deleteVoiceChannelTime(vchannel, 5)
+        tempchannelAdd(str(ctx.author.id), vchannel.id)
+
+@client.command(aliases=['croom.clear', 'clear room', 'room clear', 'clear', 'clear_croom', 'clear.croom'])
+async def croom_clear(ctx):
+    user = str(ctx.author.id)
+    with open('tempchannel.json', 'r') as f:
+        d = json.load(f)
+        if user in d['Owners'].keys():
+            while len(d['Owners'][user]) != 0:
+                for channels in d['Owners'][user]:
+                    for i in ctx.guild.voice_channels:
+                        if i.id == channels:
+                            listid = d['Owners'][user]
+                            await i.delete()
+                            listid.remove(channels)
+                            d['Owners'][user] = listid
+        else:
+            await ctx.send("You haven't created a room yet! Use `.croom user1 user2` to create a room.")
+            return
+        del d['Owners'][user]
+        f.close()
+
+    with open('tempchannel.json', 'w') as f:
+        json.dump(d, f)
+        f.close()
         
 client.run('token')
