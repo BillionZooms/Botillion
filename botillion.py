@@ -120,7 +120,6 @@ def tempchannelAdd(userid, channelid):
         json.dump(d, f, indent=2)
         f.close()
         
-
 @client.command()
 async def croom(ctx, user1, user2, *args):
     categories = ctx.guild.by_category()
