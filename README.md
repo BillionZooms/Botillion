@@ -5,7 +5,8 @@ A bot meant for me to practice using discord.py and other packages such as json,
 # Features
 ## 8Ball
 
-The 8ball command is just a simple command which pulls possible answers from a text file and using the random package to choose a random answer for you. Soon to be configured to being an embed message instead of a plain boring one.
+The 8ball command is just a simple command which pulls possible answers from a text file and using the random package to choose a random answer for you.
+Formatted in Embed to look better :)
 
 ## Create room
 
@@ -15,6 +16,9 @@ You can clear all the private voice channels that you've made using the clear ro
 ## Blacklist
 
 Currently doesn't do anything except add a user's ID and name into a text file. Command in the future is going to be a simple blacklist command to blacklist specific users from using any commands from the bot. blacklist_list shows you the users that have been blacklisted. 
+
+## Stats
+Make a stats category channel and add stats you wish. Stats get updated every second/minute/hour using @tasks.loop()
 
 # What to expect
 
