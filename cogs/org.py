@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from cogs.utilsb import users
 from cogs.utilsb import rooms
@@ -10,6 +10,27 @@ import logging
 import os
 import random
 
+
+@tasks.loop(seconds=10)
+async def refreshStats(cat):
+    clist = cat.voice_channels
+    for i in clist:
+        guild = i.guild
+        if i.name.startswith('Members'):
+            count = users.countTrueMembers(guild)
+            await i.edit(name = f'Members: {count}')
+        elif i.name.startswith('Roles'):
+            count = len(guild.roles)
+            await i.edit(name = f'Roles: {count}')
+        elif i.name.startswith('Channels'):
+            count = 0
+            for x in guild.channels:
+                if not isinstance(x, discord.CategoryChannel):
+                    count += 1
+            await i.edit(name = f'Channels: {count}')
+        elif i.name.startswith('Bots'):
+            count = users.countBots(guild)
+            await i.edit(name = f'Bots: {count}')
 
 class Organize(commands.Cog):
     def __init__(self, bot):
@@ -163,9 +184,7 @@ class Organize(commands.Cog):
                             x = 0
                             val = False
                             if not cat.voice_channels:
-                                for i in ctx.guild.members:
-                                    if not i.bot:
-                                        count += 1
+                                count = users.countTrueMembers(ctx.guild)
                                 c1 = await cat.create_voice_channel(name = f'Members: {count}', overwrites=overwritesVoice)
                             else:
                                 for x in cat.voice_channels:
@@ -176,9 +195,7 @@ class Organize(commands.Cog):
                                         val = True
                                         break
                                 if val == False:
-                                    for i in ctx.guild.members:
-                                        if not i.bot:
-                                            count += 1
+                                    count = users.countTrueMembers(ctx.guild)
                                     c1 = await cat.create_voice_channel(name = f'Members: {count}', overwrites=overwritesVoice)
                         elif str(reaction[0].emoji) == '☁️':
                             i = 0
@@ -225,9 +242,7 @@ class Organize(commands.Cog):
                             x = 0
                             val = False
                             if not cat.voice_channels:
-                                for i in ctx.guild.members:
-                                    if i.bot:
-                                        count += 1
+                                count = users.countBots(ctx.guild)
                                 c4 = await cat.create_voice_channel(name = f'Bots: {count}', overwrites=overwritesVoice)
                             else:
                                 for x in cat.voice_channels:
@@ -238,13 +253,16 @@ class Organize(commands.Cog):
                                         val = True
                                         break
                                 if val == False:
-                                    for i in ctx.guild.members:
-                                        if i.bot:
-                                            count += 1
+                                    count = users.countBots(ctx.guild)
                                     c4 = await cat.create_voice_channel(name = f'Bots: {count}', overwrites=overwritesVoice)
                         else:
-                            await msg.delete()
-                            break
+                            if not cat.voice_channels:
+                                await cat.delete()
+                                return
+                            else:
+                                refreshStats.start(cat)
+                                await msg.delete()
+                                return
 
 
 def setup(bot):

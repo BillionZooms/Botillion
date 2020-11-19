@@ -28,3 +28,17 @@ async def checkUserinList(listx, userid):
             b = False
             read = readfile.readline()
     return b
+
+def countTrueMembers(guild):
+    count = 0
+    for i in guild.members:
+        if not i.bot:
+            count += 1
+    return count
+
+def countBots(guild):
+    count = 0
+    for i in guild.members:
+        if i.bot:
+            count += 1
+    return count
