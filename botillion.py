@@ -17,7 +17,7 @@ logg.addHandler(streamhandler)
 
 intents = discord.Intents.all()
 client = commands.Bot(command_prefix= '.', intents = intents)
-extensions = ['cogs.misc', 'cogs.admin', 'cogs.org']
+extensions = ['cogs.misc', 'cogs.admin', 'cogs.org', 'cogs.corp']
 
 @client.event
 async def on_ready():

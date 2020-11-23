@@ -1,9 +1,7 @@
 import discord
 from discord.ext import commands, tasks
 
-from cogs.utilsb import users
-from cogs.utilsb import rooms
-from cogs.utilsb import fields
+from cogs.utilsb import users, sql, rooms, fields
 
 import json
 import logging
@@ -134,26 +132,53 @@ class Organize(commands.Cog):
         with open('tempchannel.json', 'w') as f:
             json.dump(d, f)
             f.close()
-    
-    @commands.command()
-    async def stats(self, ctx, *args):
-        overwritesVoice = {
-            ctx.guild.default_role: discord.PermissionOverwrite(connect = False)
-        }
-        emlist = ['✨', '☁️', '💥', '🌈', '❌']
-        if not args:
-            embed1 = discord.Embed(title='Stats', color=15563278, description='This is the command to start configuring your stats category!')
-            fields.createFields(
+
+    @commands.group()
+    async def stats(self, ctx):
+        if ctx.invoked_subcommand is None:
+            categ = await sql.statsCategoryCheck(ctx.guild)
+            if categ != False:
+                embed = discord.Embed(title='Stats', color=15563278, description='This is the command to start configuring your stats category!')
+                for i in categ.channels:
+                    if i.name.lower().startswith("m"):
+                        embed.add_field(name=i.name, value='Total members in server (excluding bots)', inline=False)
+                    elif i.name.lower().startswith("r"):
+                        embed.add_field(name=i.name, value='Total amount of roles in server', inline=False)
+                    elif i.name.lower().startswith("b"):
+                        embed.add_field(name=i.name, value='Total amount of channels in server', inline=False)
+                    elif i.name.lower().startswith("c"):
+                        embed.add_field(name=i.name, value='Total amount of bots in the server', inline=False)
+                embed.add_field(name = 'Help', value = 'use **.stats help** for help.')
+                await ctx.send(embed=embed)
+
+            else:
+                embed1 = discord.Embed(title='Stats', color=15563278, description='This is the command to start configuring your stats category!')
+                fields.createFields(
                 embed1, False,
-                "Let's get started!", "To get started please create a category using **.stats category create**"
+                "Let's get started!", "Seems like you do not have a .stats category set up yet! To get started please create a category using **.stats category create**"
                 )
-            await ctx.send(embed=embed1)
-            try:
-                await self.bot.wait_for('message', check = lambda x: x.author == ctx.author and x.channel == ctx.channel and x.content.lower() == '.stats category create', timeout=60.0)
-            except TimeoutError:
-                return await ctx.send('Took too long to respond. Please restart by using **.stats** again')
+                await ctx.send(embed=embed1)
+
+    @stats.command(description = 'The stats help command.')
+    async def help(self, ctx):
+        embed = discord.Embed(title = 'Stats Help', description = 'The default help command for stats.', color = 15563278)
+        for i in ctx.command.parent.commands:
+            embed.add_field(name = i.name, value = i.description, inline = False)
+        await ctx.send(embed = embed)
+
+
+    @stats.command(description = 'Use this to create/remove/edit the stats category channel.')
+    async def category(self, ctx, arg):
+        overwritesVoice = {
+                ctx.guild.default_role: discord.PermissionOverwrite(connect = False)
+            }
+        emlist = ['✨', '☁️', '💥', '🌈', '❌']
+        if arg.lower() == 'create':
+            if await sql.statsCategoryCheck(ctx.guild):
+                return
             else:
                 cat = await ctx.guild.create_category(name = 'STATS')
+                await sql.statsAddCategory(cat)
                 embed2 = discord.Embed(title='Setup', color=15563278, description="Nice! We're a step closer to having this all set up! Click the reactions below for which stats you want to add to your server! When you're done just press the ❌ reaction")
                 fields.createFields(
                     embed2, False,
@@ -163,106 +188,98 @@ class Organize(commands.Cog):
                     '🌈: Bots', 'Show total amount of bots in the server'
                 )
                 msg = await ctx.send(embed=embed2)
-                for i in emlist:
-                    await msg.add_reaction(i)
-                while True:
-                    try:
-                        def check(reaction, user):
-                            if user == ctx.author:
-                                for i in emlist:
-                                    if str(reaction.emoji) == i:
-                                        return True
-                                return False
-                        reaction = await self.bot.wait_for('reaction_add', check = check, timeout = 60.0)
-                    except TimeoutError:
-                        await ctx.send('Took too long to respond. Please restart by using **.stats** again')
-                        return
-                    else:
-                        count = 0
-                        if str(reaction[0].emoji) == '✨':
-                            i = 0
-                            x = 0
-                            val = False
-                            if not cat.voice_channels:
+            for emoji in emlist:
+                await msg.add_reaction(emoji)
+            while True:
+                try:
+                    def check(reaction, user):
+                        if user == ctx.author:
+                            for i in emlist:
+                                if str(reaction.emoji) == i:
+                                    return True
+                            return False
+                    reaction = await self.bot.wait_for('reaction_add', check = check, timeout = 60.0)
+                except TimeoutError:
+                    await ctx.send('Took too long to respond. Please restart by using **.stats** again')
+                    return
+                else:
+                    count = 0
+                    if str(reaction[0].emoji) == '✨':
+                        x = 0
+                        val = False
+                        if not cat.voice_channels:
+                            count = users.countTrueMembers(ctx.guild)
+                            c1 = await cat.create_voice_channel(name = f'Members: {count}', overwrites=overwritesVoice)
+                        else:
+                            for x in cat.voice_channels:
+                                if not 'Members' in x.name:
+                                    continue
+                                else:
+                                    await c1.delete()
+                                    val = True
+                                    break
+                            if val == False:
                                 count = users.countTrueMembers(ctx.guild)
                                 c1 = await cat.create_voice_channel(name = f'Members: {count}', overwrites=overwritesVoice)
-                            else:
-                                for x in cat.voice_channels:
-                                    if not 'Members' in x.name:
-                                        continue
-                                    else:
-                                        await c1.delete()
-                                        val = True
-                                        break
-                                if val == False:
-                                    count = users.countTrueMembers(ctx.guild)
-                                    c1 = await cat.create_voice_channel(name = f'Members: {count}', overwrites=overwritesVoice)
-                        elif str(reaction[0].emoji) == '☁️':
-                            i = 0
-                            x = 0
-                            val = False
-                            if not cat.voice_channels:
-                                for i in ctx.guild.roles:
-                                    count += 1
+                    elif str(reaction[0].emoji) == '☁️':
+                        x = 0
+                        val = False
+                        if not cat.voice_channels:
+                            count =  len(ctx.guild.roles)
+                            c2 = await cat.create_voice_channel(name = f'Roles: {count}', overwrites=overwritesVoice)
+                        else:
+                            for x in cat.voice_channels:
+                                if not 'Roles' in x.name:
+                                    continue
+                                else:
+                                    await c2.delete()
+                                    val = True
+                                    break
+                            if val == False:
+                                count = len(ctx.guild.roles)
                                 c2 = await cat.create_voice_channel(name = f'Roles: {count}', overwrites=overwritesVoice)
-                            else:
-                                for x in cat.voice_channels:
-                                    if not 'Roles' in x.name:
-                                        continue
-                                    else:
-                                        await c2.delete()
-                                        val = True
-                                        break
-                                if val == False:
-                                    for i in ctx.guild.roles:
-                                        count += 1
-                                    c2 = await cat.create_voice_channel(name = f'Roles: {count}', overwrites=overwritesVoice)
-                        elif str(reaction[0].emoji) == '💥':
-                            i = 0
-                            x = 0
-                            val = False
-                            if not cat.voice_channels:
-                                for i in ctx.guild.channels:
-                                    count += 1
+                    elif str(reaction[0].emoji) == '💥':
+                        x = 0
+                        val = False
+                        if not cat.voice_channels:
+                            count =  len(ctx.guild.channels)
+                            c3 = await cat.create_voice_channel(name= f'Channels: {count}', overwrites=overwritesVoice)
+                        else:
+                            for x in cat.voice_channels:
+                                if not 'Channels' in x.name:
+                                    continue
+                                else:
+                                    await c3.delete()
+                                    val = True
+                                    break
+                            if val == False:
+                                count =  len(ctx.guild.channels)
                                 c3 = await cat.create_voice_channel(name= f'Channels: {count}', overwrites=overwritesVoice)
-                            else:
-                                for x in cat.voice_channels:
-                                    if not 'Channels' in x.name:
-                                        continue
-                                    else:
-                                        await c3.delete()
-                                        val = True
-                                        break
-                                if val == False:
-                                    for i in ctx.guild.channels:
-                                        count += 1
-                                    c3 = await cat.create_voice_channel(name= f'Channels: {count}', overwrites=overwritesVoice)
-                        elif str(reaction[0].emoji) == '🌈':
-                            i = 0
-                            x = 0
-                            val = False
-                            if not cat.voice_channels:
+                    elif str(reaction[0].emoji) == '🌈':
+                        x = 0
+                        val = False
+                        if not cat.voice_channels:
+                            count = users.countBots(ctx.guild)
+                            c4 = await cat.create_voice_channel(name = f'Bots: {count}', overwrites=overwritesVoice)
+                        else:
+                            for x in cat.voice_channels:
+                                if not 'Bots' in x.name:
+                                    continue
+                                else:
+                                    await c4.delete()
+                                    val = True
+                                    break
+                            if val == False:
                                 count = users.countBots(ctx.guild)
                                 c4 = await cat.create_voice_channel(name = f'Bots: {count}', overwrites=overwritesVoice)
-                            else:
-                                for x in cat.voice_channels:
-                                    if not 'Bots' in x.name:
-                                        continue
-                                    else:
-                                        await c4.delete()
-                                        val = True
-                                        break
-                                if val == False:
-                                    count = users.countBots(ctx.guild)
-                                    c4 = await cat.create_voice_channel(name = f'Bots: {count}', overwrites=overwritesVoice)
+                    else:
+                        if not cat.voice_channels:
+                            await cat.delete()
+                            return
                         else:
-                            if not cat.voice_channels:
-                                await cat.delete()
-                                return
-                            else:
-                                refreshStats.start(cat)
-                                await msg.delete()
-                                return
+                            refreshStats.start(cat)
+                            await msg.delete()
+                            return
 
 
 def setup(bot):
