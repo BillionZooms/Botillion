@@ -9,7 +9,7 @@ import os
 import random
 
 
-@tasks.loop(seconds=10)
+@tasks.loop(reconnect = True, minutes = 10)
 async def refreshStats(cat):
     clist = cat.voice_channels
     for i in clist:
@@ -33,6 +33,16 @@ async def refreshStats(cat):
 class Organize(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        if not refreshStats.is_running():
+            for i in self.bot.guilds:
+                cat = await sql.statsCategoryCheck(i)
+                if cat:
+                    refreshStats.start(cat)
+                    return
+            print('isnt running')
 
     @commands.command()
     async def croom(self, ctx, user1, user2, *args):
@@ -173,9 +183,10 @@ class Organize(commands.Cog):
                 ctx.guild.default_role: discord.PermissionOverwrite(connect = False)
             }
         emlist = ['✨', '☁️', '💥', '🌈', '❌']
+        ccheck = await sql.statsCategoryCheck(ctx.guild)
         if arg.lower() == 'create':
-            if await sql.statsCategoryCheck(ctx.guild):
-                return
+            if ccheck:
+                await ctx.send("There's already a category channel.")
             else:
                 cat = await ctx.guild.create_category(name = 'STATS')
                 await sql.statsAddCategory(cat)
@@ -188,99 +199,107 @@ class Organize(commands.Cog):
                     '🌈: Bots', 'Show total amount of bots in the server'
                 )
                 msg = await ctx.send(embed=embed2)
-            for emoji in emlist:
-                await msg.add_reaction(emoji)
-            while True:
-                try:
-                    def check(reaction, user):
-                        if user == ctx.author:
-                            for i in emlist:
-                                if str(reaction.emoji) == i:
-                                    return True
-                            return False
-                    reaction = await self.bot.wait_for('reaction_add', check = check, timeout = 60.0)
-                except TimeoutError:
-                    await ctx.send('Took too long to respond. Please restart by using **.stats** again')
-                    return
-                else:
-                    count = 0
-                    if str(reaction[0].emoji) == '✨':
-                        x = 0
-                        val = False
-                        if not cat.voice_channels:
-                            count = users.countTrueMembers(ctx.guild)
-                            c1 = await cat.create_voice_channel(name = f'Members: {count}', overwrites=overwritesVoice)
-                        else:
-                            for x in cat.voice_channels:
-                                if not 'Members' in x.name:
-                                    continue
-                                else:
-                                    await c1.delete()
-                                    val = True
-                                    break
-                            if val == False:
+                for emoji in emlist:
+                    await msg.add_reaction(emoji)
+                while True:
+                    try:
+                        def check(reaction, user):
+                            if user == ctx.author:
+                                for i in emlist:
+                                    if str(reaction.emoji) == i:
+                                        return True
+                                return False
+                        reaction = await self.bot.wait_for('reaction_add', check = check, timeout = 60.0)
+                    except TimeoutError:
+                        await ctx.send('Took too long to respond. Please restart by using **.stats** again')
+                        return
+                    else:
+                        count = 0
+                        if str(reaction[0].emoji) == '✨':
+                            x = 0
+                            val = False
+                            if not cat.voice_channels:
                                 count = users.countTrueMembers(ctx.guild)
                                 c1 = await cat.create_voice_channel(name = f'Members: {count}', overwrites=overwritesVoice)
-                    elif str(reaction[0].emoji) == '☁️':
-                        x = 0
-                        val = False
-                        if not cat.voice_channels:
-                            count =  len(ctx.guild.roles)
-                            c2 = await cat.create_voice_channel(name = f'Roles: {count}', overwrites=overwritesVoice)
-                        else:
-                            for x in cat.voice_channels:
-                                if not 'Roles' in x.name:
-                                    continue
-                                else:
-                                    await c2.delete()
-                                    val = True
-                                    break
-                            if val == False:
-                                count = len(ctx.guild.roles)
+                            else:
+                                for x in cat.voice_channels:
+                                    if not 'Members' in x.name:
+                                        continue
+                                    else:
+                                        await c1.delete()
+                                        val = True
+                                        break
+                                if val == False:
+                                    count = users.countTrueMembers(ctx.guild)
+                                    c1 = await cat.create_voice_channel(name = f'Members: {count}', overwrites=overwritesVoice)
+                        elif str(reaction[0].emoji) == '☁️':
+                            x = 0
+                            val = False
+                            if not cat.voice_channels:
+                                count =  len(ctx.guild.roles)
                                 c2 = await cat.create_voice_channel(name = f'Roles: {count}', overwrites=overwritesVoice)
-                    elif str(reaction[0].emoji) == '💥':
-                        x = 0
-                        val = False
-                        if not cat.voice_channels:
-                            count =  len(ctx.guild.channels)
-                            c3 = await cat.create_voice_channel(name= f'Channels: {count}', overwrites=overwritesVoice)
-                        else:
-                            for x in cat.voice_channels:
-                                if not 'Channels' in x.name:
-                                    continue
-                                else:
-                                    await c3.delete()
-                                    val = True
-                                    break
-                            if val == False:
+                            else:
+                                for x in cat.voice_channels:
+                                    if not 'Roles' in x.name:
+                                        continue
+                                    else:
+                                        await c2.delete()
+                                        val = True
+                                        break
+                                if val == False:
+                                    count = len(ctx.guild.roles)
+                                    c2 = await cat.create_voice_channel(name = f'Roles: {count}', overwrites=overwritesVoice)
+                        elif str(reaction[0].emoji) == '💥':
+                            x = 0
+                            val = False
+                            if not cat.voice_channels:
                                 count =  len(ctx.guild.channels)
                                 c3 = await cat.create_voice_channel(name= f'Channels: {count}', overwrites=overwritesVoice)
-                    elif str(reaction[0].emoji) == '🌈':
-                        x = 0
-                        val = False
-                        if not cat.voice_channels:
-                            count = users.countBots(ctx.guild)
-                            c4 = await cat.create_voice_channel(name = f'Bots: {count}', overwrites=overwritesVoice)
-                        else:
-                            for x in cat.voice_channels:
-                                if not 'Bots' in x.name:
-                                    continue
-                                else:
-                                    await c4.delete()
-                                    val = True
-                                    break
-                            if val == False:
+                            else:
+                                for x in cat.voice_channels:
+                                    if not 'Channels' in x.name:
+                                        continue
+                                    else:
+                                        await c3.delete()
+                                        val = True
+                                        break
+                                if val == False:
+                                    count =  len(ctx.guild.channels)
+                                    c3 = await cat.create_voice_channel(name= f'Channels: {count}', overwrites=overwritesVoice)
+                        elif str(reaction[0].emoji) == '🌈':
+                            x = 0
+                            val = False
+                            if not cat.voice_channels:
                                 count = users.countBots(ctx.guild)
                                 c4 = await cat.create_voice_channel(name = f'Bots: {count}', overwrites=overwritesVoice)
-                    else:
-                        if not cat.voice_channels:
-                            await cat.delete()
-                            return
+                            else:
+                                for x in cat.voice_channels:
+                                    if not 'Bots' in x.name:
+                                        continue
+                                    else:
+                                        await c4.delete()
+                                        val = True
+                                        break
+                                if val == False:
+                                    count = users.countBots(ctx.guild)
+                                    c4 = await cat.create_voice_channel(name = f'Bots: {count}', overwrites=overwritesVoice)
                         else:
-                            refreshStats.start(cat)
-                            await msg.delete()
-                            return
-
+                            if not cat.voice_channels:
+                                await cat.delete()
+                                return
+                            else:
+                                refreshStats.start(cat)
+                                await msg.delete()
+                                return
+        elif arg.lower() == 'remove':
+            if ccheck:
+                await sql.statsRemoveCategory(ccheck)
+                for i in ccheck.channels:
+                    await i.delete()
+                await ccheck.delete()
+                refreshStats.stop()
+            else:
+                await ctx.send("There's no category channel.")
 
 def setup(bot):
     bot.add_cog(Organize(bot))

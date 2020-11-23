@@ -17,6 +17,13 @@ async def statsAddCategory(cat):
         async with db.cursor() as crs:
             await crs.execute("""INSERT INTO stats (guildID, categoryID) VALUES (:guildID, :categoryid)""", {'guildID': cat.guild.id, 'categoryid': cat.id})
             await db.commit()
+
+async def statsRemoveCategory(cat):
+    async with aiosqlite.connect('org.db') as db:
+        await db.execute(sqldb)
+        async with db.cursor() as crs:
+            await crs.execute("""DELETE FROM stats WHERE categoryID = :categoryid""", {'categoryid': cat.id})
+            await db.commit()
     
 async def statsCategoryCheck(guild):
     async with aiosqlite.connect('org.db') as db:
