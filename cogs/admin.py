@@ -66,5 +66,13 @@ class Admin(commands.Cog):
         bllist = bltxt.read()
         await ctx.send(f'The blacklisted users are:\n`{bllist}`')
 
+    @commands.command(hidden = True)
+    async def kick(self, ctx, member: discord.Member, *, reason = None):
+        await member.kick(reason = reason)
+        embed = discord.Embed(title = 'Success!', description = f'Sucessfully kicked {member.mention}')
+        await ctx.send(embed = embed)
+        
+
+
 def setup(bot):
     bot.add_cog(Admin(bot))

@@ -10,7 +10,7 @@ import random
 
 
 @tasks.loop(reconnect = True, minutes = 10)
-async def refreshStats(cat):
+async def refreshStats(cat): # LOOP TO KEEP UPDATING SERVER STATS // ANYTHING BELOW 10 MINUTES MIGHT BE CONSIDERED API ABUSE
     clist = cat.voice_channels
     for i in clist:
         guild = i.guild
